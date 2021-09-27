@@ -30,7 +30,7 @@ for tr in soup.find('tbody').find_all("tr"):
         percent_of_money = tds[4]
         diff = tds[5]
         num_bets = tds[6]
-        print(percent_of_money.get_text())
+        print(teams.get_text(),open.get_text(),best_odds.get_text(),percent_of_bets.get_text(),percent_of_money.get_text())
         # teams = tr.find_all('div',class_="game-info__team--desktop")
         # betting_percent = tr.find_all('div',class_="public-betting__percent-and-bar")
         # money_percent= tr.find_all('span',class_=["public-betting__percent custom-q2y3yl e1h8ku180"])
