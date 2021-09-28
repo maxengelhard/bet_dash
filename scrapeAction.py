@@ -1,5 +1,23 @@
 import requests
 from bs4 import BeautifulSoup
+import psycopg2
+import os
+from dotenv import load_dotenv
+from decimal import Decimal
+
+load_dotenv()
+
+
+conn = psycopg2.connect(
+    host=os.getenv('host'),
+    database=os.getenv('database'),
+    user=os.getenv('user')
+)
+
+cur = conn.cursor()
+
+
+
 
 
 headers = {
@@ -14,7 +32,6 @@ headers = {
 url = "https://www.actionnetwork.com/nfl/public-betting"
 req = requests.get(url, headers)
 soup = BeautifulSoup(req.content, 'html.parser')
-num = 0
 for tr in soup.find('tbody').find_all("tr"):
     # is part of formatting
     if tr.has_attr('class'):
@@ -24,38 +41,45 @@ for tr in soup.find('tbody').find_all("tr"):
         # each rows columns
         tds = tr.find_all('td')
         teams = tds[0]
-        open = tds[1]
-        best_odds = tds[2]
-        percent_of_bets = tds[3]
-        percent_of_money = tds[4]
-        diff = tds[5]
-        num_bets = tds[6]
-        print(teams.get_text(),open.get_text(),best_odds.get_text(),percent_of_bets.get_text(),percent_of_money.get_text())
-        # teams = tr.find_all('div',class_="game-info__team--desktop")
-        # betting_percent = tr.find_all('div',class_="public-betting__percent-and-bar")
-        # money_percent= tr.find_all('span',class_=["public-betting__percent custom-q2y3yl e1h8ku180"])
-        # print(money_percent[3].get_text())
-        # # print(len(money_percent))
-        # for idx, team in enumerate(teams):
-        #     team_name = team.get_text()
-        #     bet_percent = betting_percent[idx].get_text()[len("Right Arrow"):]
-            
-            # try:
-            #     in_money = money_percent[idx].get.text()
-            # except:
-            #     in_money= 0
-            # print(team_name,bet_percent,in_money)
-        num= num+1
+        status = teams.find('div','public-betting__game-status').get_text()
+        team_names = teams.find_all('div','game-info__team--desktop')
+        team_1_name = team_names[0].get_text()
+        team_2_name = team_names[1].get_text()
+        opens = tds[1].find_all('div','public-betting__open-cell')
+        team_1_open = Decimal(opens[0].get_text())
+        team_2_open = Decimal(opens[1].get_text())
+        best_odds = tds[2].find_all('div','custom-5d751z ena22470')
+        team_1_best_odds = Decimal(best_odds[0].find_all('span','highlight-text__children')[0].get_text())
+        team_1_juice = Decimal(best_odds[0].find_all('span','highlight-text__children')[1].get_text())
+        team_2_best_odds = Decimal(best_odds[1].find_all('span','highlight-text__children')[0].get_text())
+        team_2_juice = Decimal(best_odds[1].find_all('span','highlight-text__children')[1].get_text())
+        percent_of_bets = tds[3].find_all('span','highlight-text__children')
+        team_1_percent_of_bet = Decimal(percent_of_bets[0].get_text().rstrip('%'))
+        team_2_percent_of_bet = Decimal(percent_of_bets[1].get_text().rstrip('%'))
+        percent_of_money = tds[4].find_all('span','highlight-text__children')
+        if len(percent_of_money)>0:
+            team_1_percent_of_money = Decimal(percent_of_money[0].get_text().rstrip('%'))
+            team_2_percent_of_money = Decimal(percent_of_money[1].get_text().rstrip('%'))
+        else:
+            team_1_percent_of_money = None
+            team_2_percent_of_money = None 
+        num_bets = tds[6].find('div','public-betting__number-of-bets').get_text()
+        print(status,team_1_name, team_2_name, team_1_open, team_2_open , team_1_best_odds ,team_1_juice ,team_2_best_odds,team_2_juice,team_1_percent_of_bet,team_2_percent_of_bet
+            ,team_1_percent_of_money 
+            ,team_2_percent_of_money 
+            ,num_bets)
+        
 
-print(num)
-# public = 'public-betting__percents-container'
-# bets = soup.find_all('div',public)
-# team_ref = 'game-info__team--desktop'
-# teams = soup.find_all('div',team_ref)
-# # for team in teams:
-# #     print(team.get_text())
-# for idx, val in enumerate(bets):
-#     print(val.get_text())
-#     print(teams[idx].get_text())
-# print((bets.get_text()))
+# rows = cur.fetchall()
+# print(rows)
+
+# cur.close()
+# conn.close()
+        
+        
+        
+        
+        
+        
+
 
