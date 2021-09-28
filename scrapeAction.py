@@ -4,17 +4,9 @@ import psycopg2
 import os
 from dotenv import load_dotenv
 from decimal import Decimal
+import datetime
 
 load_dotenv()
-
-
-conn = psycopg2.connect(
-    host=os.getenv('host'),
-    database=os.getenv('database'),
-    user=os.getenv('user')
-)
-
-cur = conn.cursor()
 
 
 
@@ -64,10 +56,28 @@ for tr in soup.find('tbody').find_all("tr"):
             team_1_percent_of_money = None
             team_2_percent_of_money = None 
         num_bets = tds[6].find('div','public-betting__number-of-bets').get_text()
-        print(status,team_1_name, team_2_name, team_1_open, team_2_open , team_1_best_odds ,team_1_juice ,team_2_best_odds,team_2_juice,team_1_percent_of_bet,team_2_percent_of_bet
+        now = datetime.datetime.now()
+        sql = 'INSERT INTO nfl VALUES $(%s);'
+        try:
+            conn = psycopg2.connect(
+                    host=os.getenv('host'),
+                    database=os.getenv('database'),
+                    user=os.getenv('user')
+                    )   
+
+            cur = conn.cursor()
+        
+            cur.execute(sql, [status,team_1_name, team_2_name, team_1_open, team_2_open , team_1_best_odds ,team_1_juice ,team_2_best_odds,team_2_juice,team_1_percent_of_bet,team_2_percent_of_bet
             ,team_1_percent_of_money 
             ,team_2_percent_of_money 
-            ,num_bets)
+            ,num_bets, now])
+            conn.commit()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
         
 
 # rows = cur.fetchall()
