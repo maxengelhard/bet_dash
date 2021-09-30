@@ -42,6 +42,10 @@ for tr in soup.find('tbody').find_all("tr"):
         team_names = teams.find_all('div','game-info__team--desktop')
         team_1_name = team_names[0].get_text()
         team_2_name = team_names[1].get_text()
+        game_id = team_1_name + '-' + team_2_name + '-' + status
+        # team 2 is home
+        team_1_away='Away'
+        team_2_home='Home'
         opens = tds[1].find_all('div','public-betting__open-cell')
         team_1_open = Decimal(opens[0].get_text())
         team_2_open = Decimal(opens[1].get_text())
@@ -67,26 +71,38 @@ for tr in soup.find('tbody').find_all("tr"):
         except:
             num_bets=-1
         now = datetime.datetime.now()
-        sql = 'INSERT INTO nfl VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);'
+        sql = 'INSERT INTO nfl VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);' 
         try:
         
             cur.execute(sql, (
             status
             ,team_1_name
-            ,team_2_name
-            ,team_1_open
-            ,team_2_open 
+            ,team_1_open 
             ,team_1_best_odds
             ,team_1_juice 
-            ,team_2_best_odds
-            ,team_2_juice
             ,team_1_percent_of_bet
-            ,team_2_percent_of_bet
-            ,team_1_percent_of_money 
-            ,team_2_percent_of_money 
+            ,team_1_percent_of_money
             ,num_bets
-            ,now))
+            ,now
+            ,'Away'
+            ,game_id))
             conn.commit()
+
+            cur.execute(sql, (
+            status
+            ,team_2_name
+            ,team_2_open 
+            ,team_2_best_odds
+            ,team_2_juice 
+            ,team_2_percent_of_bet
+            ,team_2_percent_of_money
+            ,num_bets
+            ,now
+            ,'Home'
+            ,game_id))
+            conn.commit()
+
+
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         
