@@ -5,6 +5,8 @@ import os
 from dotenv import load_dotenv
 from decimal import Decimal
 import datetime
+from pytz import timezone
+
 
 load_dotenv()
 
@@ -17,17 +19,17 @@ cur = conn.cursor()
 
 
 
-headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Max-Age': '3600',
-    'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
-    }
+# headers = {
+#     'Access-Control-Allow-Origin': '*',
+#     'Access-Control-Allow-Methods': 'GET',
+#     'Access-Control-Allow-Headers': 'Content-Type',
+#     'Access-Control-Max-Age': '3600',
+#     'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
+#     }
 
 
 url = "https://www.actionnetwork.com/nfl/public-betting"
-req = requests.get(url, headers)
+req = requests.get(url)
 soup = BeautifulSoup(req.content, 'html.parser')
 for tr in soup.find('tbody').find_all("tr"):
     # is part of formatting
@@ -38,7 +40,16 @@ for tr in soup.find('tbody').find_all("tr"):
         # each rows columns
         tds = tr.find_all('td')
         teams = tds[0]
-        status = teams.find('div','public-betting__game-status').get_text()
+        status = teams.find('div','public-betting__game-status').get_text().strip()
+        if status!='Final':
+            date_object = datetime.datetime.strptime(status, "%a %m/%d, %I:%M %p")
+            if datetime.datetime.now().month > date_object.month:
+                new_year=date_object.replace(year=(datetime.datetime.now().year + 1)) + datetime.timedelta(hours=-5)
+            else:
+                new_year=date_object.replace(year=datetime.datetime.now().year) + datetime.timedelta(hours=-5)
+            string_object_status = datetime.datetime.strftime(new_year,"%a %m/%d, %I:%M %p")
+        else:
+            string_object_status='Final'
         team_names = teams.find_all('div','game-info__team--desktop')
         team_1_name = team_names[0].get_text()
         team_2_name = team_names[1].get_text()
@@ -70,12 +81,13 @@ for tr in soup.find('tbody').find_all("tr"):
             num_bets = int(float(num_bets_pull))
         except:
             num_bets=-1
-        now = datetime.datetime.now()
+        tz = timezone('EST')
+        now = datetime.datetime.now(tz)
         sql = 'INSERT INTO nfl VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);' 
         try:
         
             cur.execute(sql, (
-            status
+            string_object_status
             ,team_1_name
             ,team_1_open 
             ,team_1_best_odds
@@ -89,7 +101,7 @@ for tr in soup.find('tbody').find_all("tr"):
             conn.commit()
 
             cur.execute(sql, (
-            status
+            string_object_status
             ,team_2_name
             ,team_2_open 
             ,team_2_best_odds
